@@ -6,9 +6,9 @@ Currently this command-line program only generates checklists for a given taxon 
 
 ### 2026 Updates (Alex Pinch)
 
-What needed updating was:\
-- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.\
-- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.\
+What needed updating was:
+- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.
+- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.
 - **Metadata included in output**: Output includes generation timestamp and query parameters as comments.
 
 ### Requirements
