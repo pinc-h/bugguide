@@ -6,18 +6,48 @@ Currently this command-line program only generates checklists for a given taxon 
 
 ### 2026 Updates (Alex Pinch)
 
-What needed updating was:  
-- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.  
-- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.  
-- **Metadata included in output**: Output includes generation timestamp and query parameters as comments.  
+What needed updating was:\
+- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.\
+- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.\
+- **Metadata included in output**: Output includes generation timestamp and query parameters as comments.
 
 ### Requirements
-
 -   Ruby 3.2+
--   Chromium browser (installed automatically by ferrum on first run)
+-   Homebrew
+-   Chromium browser
 -   Bundler
+-   Ferrum
 
-### Installation
+### Installation requirements (skip if you have them)
+
+```bash
+# Installs homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Installs the Ruby environment
+brew install rbenv ruby-build
+
+# Adds rbenv to your shell
+echo 'eval "$(rbenv init -)"' >> ~/.zshrc 
+source ~/.zshrc
+
+# Installs Ruby 3.2.2
+rbenv install 3.2.2
+rbenv global 3.2.2
+
+# Installs Chromium
+brew install --cask chromium
+
+# Mac requires you to give Chromium permission to open in the background and run the scraper
+xattr -cr /Applications/Chromium.app
+
+# Install ferrum
+gem install ferrum
+```
+
+
+
+### Install
 
 Clone and install locally:
 
@@ -83,4 +113,4 @@ TAXON ID,NAME
 ### Credits
 
 -   Original gem by [Ken-ichi Ueda](https://github.com/kueda)
--   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h)  
+-   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h) \`\`\`
