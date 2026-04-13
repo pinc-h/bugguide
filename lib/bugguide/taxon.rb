@@ -9,6 +9,12 @@
 # Several methods are intended for
 # compatability with the DarwinCore SimpleMultimedia extention (http://rs.gbif.org/terms/1.0/Multimedia).
 #
+
+require 'ferrum'
+require 'nokogiri'
+require 'open-uri'
+require 'cgi'
+
 class BugGuide::Taxon
   NAME_PATTERN = /[\w\s\-\'\.]+/
   attr_accessor :id, :url
@@ -90,25 +96,138 @@ class BugGuide::Taxon
     end
   end
 
+  # Create a new taxon from name and URL
+  def self.new_from_name_and_url(name, url)
+    id = url.match(/\/node\/view\/(\d+)/)
+    id = id ? id[1] : nil
+    taxon = new(name: name, url: url)
+    taxon.id = id if id
+    taxon
+  end
+
   # Search for taxa, returns matching BugGuide::Taxon instances
   def self.search(name, options = {})
-    # For reference, https://bugguide.net/adv_search/taxon.php?q=Sphecidae returns
-    # 117327||Apoid Wasps (Apoidea)- traditional Sphecidae|2302 135|Sphecidae|Thread-waisted Wasps|2700 
-    url = "https://bugguide.net/adv_search/taxon.php?q=#{URI::Parser.new.escape(name)}"
-    headers = options[:headers] || {}
-    taxa = []
-    open(url, headers) do |f|
-      f.read.split("\n").each do |row|
-        row = row.split('|').compact.map(&:strip)
-        taxa << BugGuide::Taxon.new(
-          id: row[0], 
-          name: row[1], 
-          scientific_name: row[1], 
-          common_name: row[2]
-        )
+    
+    sleep(1)
+    
+    begin
+      browser = Ferrum::Browser.new(
+        headless: true,
+        timeout: 30,
+        browser_options: {
+          'user-agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        }
+      )
+      
+      # Go to the advanced search page
+      browser.go_to("https://bugguide.net/adv_search/bgsearch.php")
+      sleep(2)
+      
+      # Find the taxon field
+      taxon_input = browser.at_css('input[name="taxon"]')
+      
+      if taxon_input
+        taxon_input.focus.type(name)
+        
+        # Wait for autocomplete dropdown and click the first suggestion
+        sleep(2)
+        
+        ac_result = browser.at_css('.ac_results li')
+        if ac_result
+          taxon_id = ac_result.text.match(/^(\d+)/)[1]
+          ac_result.click
+          sleep(1)
+        else
+          puts "  No autocomplete dropdown found. Trying fallback..."
+          taxon_input.type(" ")
+          sleep(2)
+          ac_result = browser.at_css('.ac_results li')
+          if ac_result
+            taxon_id = ac_result.text.match(/^(\d+)/)[1]
+            puts "  Selected taxon ID: #{taxon_id} (#{name})"
+            ac_result.click
+          end
+        end
+      else
+        puts "Error: Could not find taxon input!"
+        browser.quit
+        return []
       end
+
+      # Select state/province if provided
+      if options[:state]
+        state_code = options[:state]
+        
+        location_select = browser.at_css('select[name="location[]"]')
+        
+        if location_select
+          bc_option = location_select.at_css("option[value='#{state_code}']")
+          if bc_option
+            bc_option.click
+            sleep(1)
+          else
+            puts "  Warning: Could not find option for #{state_code}"
+          end
+        else
+          puts "  Warning: Could not find location select element"
+        end
+      end
+      
+      # Submit the form
+      submit_button = browser.at_css('input[type="submit"][value="Go!"]')
+      if submit_button
+        submit_button.click
+      else
+        browser.execute("document.getElementById('bgsearch').submit()")
+      end
+      
+      # Wait for results
+      sleep(5)
+      browser.network.wait_for_idle
+      
+      # Save page for debugging
+      File.open("/tmp/bugguide_results.html", "w") do |f|
+        f.write(browser.body)
+      end
+      
+      doc = Nokogiri::HTML(browser.body)
+      browser.quit
+      
+      # Parse results - look for the Guide Placement column
+      results = []
+      
+      doc.css('table tr').each do |row|
+        cells = row.css('td')
+        
+        if cells.length >= 7
+          guide_cell = cells.last
+          link = guide_cell.at_css('a')
+          
+          if link
+            href = link['href']
+            taxon_name = link.at_css('i') ? link.at_css('i').text.strip : link.text.strip
+            
+            if href && href.include?('/node/view/') && taxon_name.length > 0
+              results << { name: taxon_name, url: href }
+            end
+          end
+        end
+      end
+      
+      # Get unique taxa by URL
+      unique_taxa = results.uniq { |r| r[:url] }
+      
+      if unique_taxa.empty?
+        puts "No results found."
+      end
+      
+      # Return the taxa without printing (CLI will handle output)
+      unique_taxa.map { |t| new_from_name_and_url(t[:name], t[:url]) }
+        
+    rescue => e
+      puts "Error: #{e.message}"
+      []
     end
-    taxa
   end
 
   # Find a single BugGuide taxon given its node ID
@@ -121,20 +240,11 @@ class BugGuide::Taxon
   end
 
   # DarwinCore mapping
-
-  # DarwinCore-compliant taxon ID
   alias_method :taxonID, :id
-
-  # DarwinCore-compliant scientific name
   alias_method :scientificName, :scientific_name
-
-  # DarwinCore-compliant common name
   alias_method :vernacularName, :common_name
-
-  # DarwinCore-compliant rank
   alias_method :taxonRank, :rank
 
-  # DarwinCore-compliant taxonomic classification
   def higherClassification
     ancestors.map(&:scientific_name).join(' | ')
   end

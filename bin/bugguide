@@ -9,50 +9,41 @@ program :description, 'Command-line tool for scraping data from https://bugguide
 command :checklist do |c|
   c.syntax = "bugguide checklist [taxon name]"
   c.option "-s", '--state STATE', String, '2-letter code of a US state or CA province'
-  c.option "-c", '--county COUNTY', String, "US county, full name, e.g. Alameda, Middlesex."
   c.option "-f", '--format table|csv', String, "Output format"
   c.action do |args, opts|
-    taxa = BugGuide::Taxon.search(args[0])
-    if taxa.size == 0
+    if args.empty?
+      abort "You must specify a taxon name"
+    end
+    
+    puts "# BugGuide Checklist Generator"
+    puts "# Generated on #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}"
+    puts "# Searching for #{args[0]} in #{opts.state || 'all locations'}..."
+    puts ""
+    
+    # Get all matching taxa directly
+    taxa = BugGuide::Taxon.search(args[0], state: opts.state)
+    
+    if taxa.empty?
       abort "No matching taxa found"
-    elsif taxa.size == 1
-      taxon = taxa.first
-    else
-      puts "Multiple taxon results, choose one (hit ENTER to choose the first)"
-      taxa.each_with_index do |taxon, i|
-        say "[#{i}] #{taxon.common_name} (#{taxon.scientific_name}) https://bugguide.net/node/view/#{taxon.id}"
-      end
-      choice = ask "Choice: "
-      taxon = taxa[choice.to_i]
-      taxon = taxa.first if choice.blank?
     end
-    abort "You must choose a taxon" if taxon.blank?
-    photos = begin
-      BugGuide::Photo.search(
-        taxon: taxon.id, 
-        user: opts.user, 
-        state: opts.state, 
-        county: opts.county
-      )
-    rescue BugGuide::TooManyResultsException
-      abort "Too many results. Try refining your query."
-    end
-    longest_name = ''
-    unique_photos = photos.uniq{|p| 
-      longest_name = p.taxon.scientific_name if p.taxon.scientific_name.size > longest_name.size
-      p.taxon.scientific_name
-    }.sort{|a,b| a.taxon.scientific_name <=> b.taxon.scientific_name}
+    
+    # Output the checklist
     if opts.format == 'csv'
-      puts ["TAXON ID", "NAME", "PHOTO ID"].join(',')
-      unique_photos.each do |p|
-        puts [p.taxon.id, p.taxon.scientific_name, p.id].join(',')
+      puts "TAXON ID,NAME"
+      taxa.each do |t|
+        puts "#{t.id},#{t.scientific_name}"
       end
     else
-      puts "Found #{photos.size} photos of #{unique_photos.size} taxa:"
-      puts
-      puts ["TAXON ID".ljust(10), "NAME".ljust(longest_name.size+2), "PHOTO ID"].join(' ')
-      unique_photos.each do |p|
-        puts [p.taxon.id.to_s.ljust(10), p.taxon.scientific_name.ljust(longest_name.size+2), p.id].join(' ')
+      # Find the longest name for formatting
+      longest_name = taxa.map { |t| t.scientific_name.to_s.length }.max || 20
+      
+      puts "Found #{taxa.size} taxa:"
+      puts ""
+      puts "TAXON ID".ljust(10) + "NAME"
+      puts "-" * (10 + longest_name + 5)
+      
+      taxa.each do |t|
+        puts t.id.to_s.ljust(10) + t.scientific_name.to_s
       end
     end
   end

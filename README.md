@@ -1,119 +1,86 @@
 # BugGuide
 
-Ruby gem for scraping data from [BugGuide.net](https://bugguide.net), an
-excellent online community of entomologists sharing information about
-terrestrial arthropods in North America. Sadly, BugGuide doesn't have an API, so
-this gem is little more than a scraper focusing on their [advanced search
-feature](https://bugguide.net/adv_search/bgsearch.php).
+Ruby gem for scraping data from BugGuide.net, an excellent online community of entomologists sharing information about terrestrial arthropods in North America. Sadly, BugGuide doesn't have an API, so this gem is little more than a scraper focusing on their advanced search feature. This Ruby Gem was originally developed by Ken-ichi Ueda, which I have updated and simplified with the help of AI. Mistakes likely abound. Let me know if it works for you.
 
-# Installation
+Currently this command-line program only generates checklists for a given taxon and state/province by scraping BugGuide.
 
-I haven't posted this to rubygems yet, so you can just clone and install
-locally:
+### 2026 Updates (Alex Pinch)
 
-```bash
-git clone git@github.com:kueda/bugguide.git
+What needed updating was:\
+- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.\
+- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.\
+- **Metadata included in output**: Output includes generation timestamp and query parameters as comments.
+
+### Requirements
+
+-   Ruby 3.2+
+-   Chromium browser (installed automatically by ferrum on first run)
+-   Bundler
+
+### Installation
+
+Clone and install locally:
+
+``` bash
+git clone https://github.com/pinc-h/bugguide.git
 cd bugguide
 gem build bugguide.gemspec
-gem install bugguide-x.x.x.gem
+gem install ./bugguide-0.1.4.gem
 ```
 
-And of course bundler makes it pretty easy:
+If having trouble installing, you can run directly:
 
-```ruby
-gem 'bugguide', git: 'git@github.com:kueda/bugguide.git'
+``` bash
+git clone https://github.com/pinc-h/bugguide.git
+cd bugguide
+bundle install
+ruby -I lib bin/bugguide checklist Bombus -s BC
 ```
 
-# Usage
+### Usage
 
-## Search taxa
-```ruby
-BugGuide::Taxon.search('Apis mellifera').map(&:name)
-["Apis mellifera", "Apis mellifera carnica", "Apis mellifera ligustica", 
-  "Apis mellifera mellifera", "Apis mellifera scutellata"] 
+Generate checklists of taxa for a given location:
+
+``` bash
+$ bugguide checklist Epeolus -s BC
+# BugGuide Checklist Generator. Alex Pinch, modified from Ken-ichi Ueda. April 2026.
+# Generated on 2026-04-13 14:32:15
+# Searching for Epeolus in BC...
+
+Found 4 taxa:
+
+TAXON ID   NAME
+-----------------------------------------
+1436814    Epeolus olympiellus
+15028      Epeolus
+446249     Epeolus compactus
+1575727    Epeolus minimus
 ```
 
-## Get common names
-```ruby
-BugGuide::Taxon.search('Apis mellifera').map(&:common_name)
-["Western Honey Bee", "Carniolan Honeybee", "Italian Honeybee", 
-  "Black Honeybee", "African Honeybee"] 
+For CSV output:
+
+``` bash
+$ bugguide checklist Epeolus -s BC -f csv
+# BugGuide Checklist Generator. Alex Pinch, modified from Ken-ichi Ueda. April 2026.
+# Generated on 2026-04-13 14:32:15
+# Searching for Epeolus in BC
+TAXON ID,NAME
+1436814,Epeolus olympiellus
+15028,Epeolus
+446249,Epeolus compactus
+1575727,Epeolus minimus
 ```
 
-## Get classification
-```ruby
-BugGuide::Taxon.search('Apis mellifera').first.ancestors.map(&:scientific_name)
-["Arthropoda", "Hexapoda", "Insecta", "Hymenoptera", "Aculeata", "Apoidea", 
-  "Apidae", "Apinae", "Apini", "Apis"]
-BugGuide::Taxon.search('Apis mellifera').first.ancestors.map(&:rank)
-["phylum", "subphylum", "class", "order", "no taxon", "no taxon", "family", 
-  "subfamily", "tribe", "genus"] 
-```
+### Options/Flags
 
-Note that `name` is a verbatim name from BugGuide, while `common_name` and
-`scientific_name` represent attempts to parse out those kind of names
-specifically. It's also worth keeping in mind that retrieving things like a
-classification require an additional request to BugGuide, so if you're doing it
-for multiple taxa, maybe cut them some slack and throttle your requests.
+| Option              | Description                                      |
+|---------------------|--------------------------------------------------|
+| `-s, --state STATE` | 2-letter code of a US state or Canadian province |
+| `-f, --format csv`  | Output as CSV (default is formatted table)       |
 
+------------------------------------------------------------------------
 
-## Search photos
+### Credits
 
-Since this gem is just scraping the Advanced Search results, you will get
-exceptions if your search returns too many results.
-
-```ruby
-taxon = BugGuide::Taxon.search('Epinotia').first
-BugGuide::Photo.search(taxon: taxon.id).map(&:thumbnail_url)
-```
-
-
-For more please check out the specs.
-
-# Command line tool
-
-Right now it only generates checklists:
-
-```bash
-> bugguide checklist Epinotia -s CA
-# choose matching taxon
-Found 82 photos of 15 taxa:
-
-TAXON ID   NAME                       PHOTO ID
-54501      Epinotia                   854559
-185131     Epinotia albangulana       388400
-579472     Epinotia albicapitana      579454
-262585     Epinotia arctostaphylana   718670
-452559     Epinotia castaneana        630199
-725616     Epinotia cercocarpana      529759
-262473     Epinotia emarginana        718673
-378960     Epinotia hopkinsana        710406
-241183     Epinotia kasloana          878601
-723150     Epinotia nigralbana        546896
-917995     Epinotia sagittana         917977
-828578     Epinotia signiferana       1001290
-472765     Epinotia subplicana        861801
-261436     Epinotia subviridis        455558
-481897     Epinotia terracoctana      458366
-```
-
-```bash
-> bugguide checklist Epinotia -s CA -f csv
-# choose matching taxon
-TAXON ID,NAME,PHOTO ID
-54501,Epinotia,854559
-185131,Epinotia albangulana,388400
-579472,Epinotia albicapitana,579454
-262585,Epinotia arctostaphylana,718670
-452559,Epinotia castaneana,630199
-725616,Epinotia cercocarpana,529759
-262473,Epinotia emarginana,718673
-378960,Epinotia hopkinsana,710406
-241183,Epinotia kasloana,878601
-723150,Epinotia nigralbana,546896
-917995,Epinotia sagittana,917977
-828578,Epinotia signiferana,1001290
-472765,Epinotia subplicana,861801
-261436,Epinotia subviridis,455558
-481897,Epinotia terracoctana,458366
-```
+-   Original gem by [Ken-ichi Ueda](https://github.com/kueda)
+-   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h) \`\`\`

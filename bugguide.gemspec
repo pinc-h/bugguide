@@ -31,4 +31,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'nokogiri', '~> 1.6'
   spec.add_runtime_dependency 'activesupport', "~> 6.1.7.3"
   spec.add_runtime_dependency 'commander', "~> 4.3"
+  spec.add_runtime_dependency 'ferrum', "~> 0.14"
 end
