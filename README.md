@@ -90,7 +90,10 @@ TAXON ID   NAME
 For CSV output:
 
 ``` bash
-$ bugguide checklist Epeolus -s BC -f csv
+$ bugguide checklist Epeolus -s BC -f csv > Epeolus_BC.csv
+```
+Will print the following to a CSV file:  
+```bash
 # BugGuide Checklist Generator. Alex Pinch, modified from Ken-ichi Ueda. April 2026.
 # Generated on 2026-04-13 14:32:15
 # Searching for Epeolus in BC
