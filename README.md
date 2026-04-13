@@ -6,10 +6,10 @@ Currently this command-line program only generates checklists for a given taxon 
 
 ### 2026 Updates (Alex Pinch)
 
-What needed updating was:\
-- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.\
-- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.\
-- **Metadata included in output**: Output includes generation timestamp and query parameters as comments.
+What needed updating was:  
+- **Cloudflare Bypass**: Replaced `open-uri` with `ferrum` (headless Chromium browser) to handle Cloudflare's bot protection.  
+- **Fixed Advanced Search**: Updated to use BugGuide's autocomplete-based taxon search form.  
+- **Metadata included in output**: Output includes generation timestamp and query parameters as comments.  
 
 ### Requirements
 
@@ -83,4 +83,4 @@ TAXON ID,NAME
 ### Credits
 
 -   Original gem by [Ken-ichi Ueda](https://github.com/kueda)
--   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h) \`\`\`
+-   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h)  
