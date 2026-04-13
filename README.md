@@ -113,4 +113,4 @@ TAXON ID,NAME
 ### Credits
 
 -   Original gem by [Ken-ichi Ueda](https://github.com/kueda)
--   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h) \`\`\`
+-   2026 updates and Cloudflare bypass by [Alex Pinch](https://github.com/pinc-h)
